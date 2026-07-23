@@ -141,7 +141,8 @@ client.once("ready", async () => {
       .setDescription("Set the automatic role for new members")
       .addRoleOption(option =>
         option.setName("role").setDescription("The role to assign").setRequired(true)
-      );
+      )
+      .setDefaultMemberPermissions(0);
 
     await rest.put(Routes.applicationGuildCommands(client.user.id, GUILD_ID), {
       body: [slashCommand.toJSON()],
