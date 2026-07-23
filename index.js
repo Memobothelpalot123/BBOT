@@ -1,3 +1,15 @@
+const http = require('http');
+
+// Simple web server to satisfy Render's free Web Service port requirement
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot is running!');
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`HTTP server is listening on port ${PORT}`);
+});
 
 import {
   Client,
@@ -299,7 +311,7 @@ client.on("interactionCreate", async (interaction) => {
             .setColor(0x5865f2),
         ],
         components: [buildTicketButtons(false)],
-      });
+    });
 
       await interaction.editReply({ content: `✅ הטיקט שלך נפתח ב <#${ticketChannel.id}>!` });
     } catch (err) {
