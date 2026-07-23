@@ -285,11 +285,12 @@ client.on("messageCreate", async (message) => {
       const fetched = await message.channel.messages.fetch({ limit: amount });
       const deleted = await message.channel.bulkDelete(fetched, true);
       
-      const reply = await message.channel.send(`🧹 נמחקו בהצלחה ${deleted.size} הודעות.`);
-      setTimeout(() => reply.delete().catch(() => {}), 4000);
+      if (deleted.size > 0) {
+        const reply = await message.channel.send(`🧹 נמחקו בהצלחה ${deleted.size} הודעות.`);
+        setTimeout(() => reply.delete().catch(() => {}), 4000);
+      }
     } catch (err) {
       console.error("Failed to clear messages:", err);
-      // Removed message.channel.send on bulkDelete error to completely prevent unhandled rejection/crashing when messages are older than 14 days
     }
     return;
   }
@@ -337,9 +338,9 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton() && interaction.customId === "start_verify") {
-    if (interaction.member.roles.cache.size > 1) {
+    if (interaction.member.roles.cache.has(VERIFY_ROLE_1) && interaction.member.roles.cache.has(VERIFY_ROLE_2)) {
       await interaction.reply({
-        content: "❌ אתה כבר מאומת!",
+        content: "❌ אתה כבר מאומת או שיש לך תפקידים בשרת!",
         ephemeral: true,
       });
       return;
