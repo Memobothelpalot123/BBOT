@@ -32,6 +32,8 @@ const VERIFY_CHANNEL_ID = "1529877007217987795";
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 const STAFF_ROLE_ID = "1529565287584764117";
+const VERIFY_ROLE_1 = "1529845381637214510";
+const VERIFY_ROLE_2 = "1529881336733634774";
 const HELP_RATE_LIMIT = 5;
 const HELP_WINDOW_MS = 60 * 60 * 1000;
 
@@ -44,6 +46,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildMembers,
   ],
 });
 
@@ -206,10 +209,10 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
   if (!message.guild && activeVerification.has(message.author.id)) {
-    const correctAnswer = activeVerification.get(message.author.id);
+    const data = activeVerification.get(message.author.id);
     const successEmbed = new EmbedBuilder()
       .setTitle("✅ אימות הושלם בהצלחה")
-      .setDescription("תשובתך נמצאה נכונה. כעת יש לך גישה מלאה לשרת DoubleIL. תוכל לסגור הודעה פרטית זו.")
+      .setDescription("תשובתך נמצאה נכונה. קיבלת את תפקידי הגישה לשרת DoubleIL. תוכל לסגור הודעה פרטית זו.")
       .setColor(0xffff00)
       .setTimestamp();
 
@@ -219,9 +222,18 @@ client.on("messageCreate", async (message) => {
       .setColor(0xffff00)
       .setTimestamp();
 
-    if (message.content.trim() === String(correctAnswer)) {
+    if (message.content.trim() === String(data.answer)) {
       activeVerification.delete(message.author.id);
-      await message.reply({ embeds: [successEmbed] });
+      
+      try {
+        const guild = await client.guilds.fetch(GUILD_ID);
+        const member = await guild.members.fetch(message.author.id);
+        await member.roles.add([VERIFY_ROLE_1, VERIFY_ROLE_2]);
+        await message.reply({ embeds: [successEmbed] });
+      } catch (err) {
+        console.error("Failed to assign roles:", err);
+        await message.reply("❌ תשובה נכונה, אך אירעה שגיאה בעת הענקת התפקידים. פנה לצוות השרת.");
+      }
     } else {
       await message.reply({ embeds: [errorEmbed] });
     }
@@ -271,11 +283,21 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton() && interaction.customId === "start_verify") {
+    // Check if the member has any other roles besides @everyone
+    // member.roles.cache has at least @everyone (which equals guild.id)
+    if (interaction.member.roles.cache.size > 1) {
+      await interaction.reply({
+        content: "❌ אתה כבר מאומת או שיש לך תפקידים בשרת!",
+        ephemeral: true,
+      });
+      return;
+    }
+
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
     const answer = num1 + num2;
 
-    activeVerification.set(interaction.user.id, answer);
+    activeVerification.set(interaction.user.id, { answer, guildId: interaction.guildId });
 
     const dmEmbed = new EmbedBuilder()
       .setTitle("🔐 תהליך אימות אבטחה")
