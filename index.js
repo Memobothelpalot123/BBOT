@@ -105,21 +105,16 @@ function buildVerifyPanel() {
     .setColor(0xffff00)
     .setFooter({ text: "מערכת אבטחה מתקדמת" });
 
-  const button = newButtonBuilder("start_verify", "התחל אימות", ButtonStyle.Success, "✅");
+  const button = new ButtonBuilder()
+    .setCustomId("start_verify")
+    .setLabel("התחל אימות")
+    .setStyle(ButtonStyle.Success)
+    .setEmoji("✅");
 
   return {
     embeds: [embed],
     components: [new ActionRowBuilder().addComponents(button)],
   };
-}
-
-function newButtonBuilder(customId, label, style, emoji) {
-  const btn = new ButtonBuilder()
-    .setCustomId(customId)
-    .setLabel(label)
-    .setStyle(style);
-  if (emoji) btn.setEmoji(emoji);
-  return btn;
 }
 
 function buildTicketButtons(handled = false) {
@@ -263,7 +258,6 @@ client.on("messageCreate", async (message) => {
     return;
   }
 
-  // Clear command handler
   if (message.content.startsWith("!clear")) {
     if (!message.member) return;
     const hasPerms = await hasClearPermission(message.member);
@@ -340,7 +334,7 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton() && interaction.customId === "start_verify") {
     if (interaction.member.roles.cache.has(VERIFY_ROLE_1) && interaction.member.roles.cache.has(VERIFY_ROLE_2)) {
       await interaction.reply({
-        content: "❌ אתה כבר מאומת או שיש לך תפקידים בשרת!",
+        content: "❌ אתה כבר מאומת!",
         ephemeral: true,
       });
       return;
