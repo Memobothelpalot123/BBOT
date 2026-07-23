@@ -89,19 +89,26 @@ function buildPanel() {
 
 function buildVerifyPanel() {
   const embed = new EmbedBuilder()
-    .setTitle("✅ מערכת אימות")
-    .setDescription("לחץ על הכפתור למטה כדי להתחיל את תהליך האימות בפרטי (DM).")
-    .setColor(0xffff00);
+    .setTitle("🛡️ מערכת אימות רשמית")
+    .setDescription("ברוכים הבאים לשרת שלנו!\nכדי לקבל גישה מלאה לכל חלקי השרת, יש לעבור תהליך אימות קצר.\n\nאנא לחצו על הכפתור המאומת למטה כדי להתחיל.")
+    .setColor(0xffff00)
+    .setFooter({ text: "מערכת אבטחה מתקדמת" });
 
-  const button = new ButtonBuilder()
-    .setCustomId("start_verify")
-    .setLabel("אימות")
-    .setStyle(ButtonStyle.Success);
+  const button = newButtonBuilder("start_verify", "התחל אימות", ButtonStyle.Success, "✅");
 
   return {
     embeds: [embed],
     components: [new ActionRowBuilder().addComponents(button)],
   };
+}
+
+function newButtonBuilder(customId, label, style, emoji) {
+  const btn = new ButtonBuilder()
+    .setCustomId(customId)
+    .setLabel(label)
+    .setStyle(style);
+  if (emoji) btn.setEmoji(emoji);
+  return btn;
 }
 
 function buildTicketButtons(handled = false) {
@@ -181,15 +188,15 @@ client.once("ready", async () => {
     const verifyChannel = await client.channels.fetch(VERIFY_CHANNEL_ID);
     if (verifyChannel && verifyChannel.type === ChannelType.GuildText) {
       const recent = await verifyChannel.messages.fetch({ limit: 50 });
-      const existing = recent.find(
-        (msg) =>
-          msg.author.id === client.user.id &&
-          msg.embeds.some((e) => e.title === "✅ מערכת אימות")
-      );
-      if (existing) await existing.delete();
+      // Clear out all old bot messages in the verification channel to ensure a fresh, clean panel
+      for (const msg of recent.values()) {
+        if (msg.author.id === client.user.id) {
+          await msg.delete().catch(() => {});
+        }
+      }
 
       await verifyChannel.send(buildVerifyPanel());
-      console.log("✅ Verify panel sent");
+      console.log("✅ Professional Verify panel sent");
     }
   } catch (err) {
     console.error("Failed to send verify panel:", err);
@@ -202,14 +209,16 @@ client.on("messageCreate", async (message) => {
   if (!message.guild && activeVerification.has(message.author.id)) {
     const correctAnswer = activeVerification.get(message.author.id);
     const successEmbed = new EmbedBuilder()
-      .setTitle("✅ אימות הצליח")
-      .setDescription("התשובה נכונה. תהליך האימות הושלם בהצלחה.")
-      .setColor(0xffff00);
+      .setTitle("✅ אימות הושלם בהצלחה")
+      .setDescription("תשובתך נמצאה נכונה. כעת יש לך גישה מלאה לשרת. תוכל לסגור הודעה פרטית זו.")
+      .setColor(0xffff00)
+      .setTimestamp();
 
     const errorEmbed = new EmbedBuilder()
-      .setTitle("❌ שגיאה באימות")
-      .setDescription("התשובה שגוי. אנא נسه שוב וענה על התרגיל הבא:")
-      .setColor(0xffff00);
+      .setTitle("❌ תשובה שגויה")
+      .setDescription("התשובה שהזנת אינה נכונה.\nאנא נסה שוב והזן את התוצאה הנכונה לשאלה הקודמת:")
+      .setColor(0xffff00)
+      .setTimestamp();
 
     if (message.content.trim() === String(correctAnswer)) {
       activeVerification.delete(message.author.id);
@@ -270,18 +279,19 @@ client.on("interactionCreate", async (interaction) => {
     activeVerification.set(interaction.user.id, answer);
 
     const dmEmbed = new EmbedBuilder()
-      .setTitle("🔐 אימות אבטחה")
-      .setDescription(`כדי להשלים את תהליך האימות, אנא ענה על השאלה הבאה:\n\n**כמה זה ${num1} + ${num2}?**\n\n*(השב בהודעה פרטית זו עם המספר בלבד)*`)
-      .setColor(0xffff00);
+      .setTitle("🔐 תהליך אימות אבטחה")
+      .setDescription(`כדי לאשר שאינך בוט, אנא השב על התרגיל הבא:\n\n**כמה זה ${num1} + ${num2}?**\n\n*(שלח הודעה פרטית זו עם המספר בלבד)*`)
+      .setColor(0xffff00)
+      .setFooter({ text: "הודעה זו מיועדת עבורך בלבד" });
 
     const replyEmbed = new EmbedBuilder()
-      .setTitle("📩 הודעה נשלחה")
-      .setDescription("נשלחה אליך הודעה פרטית (DM) עם שאלת האימות.")
+      .setTitle("📩 הודעת אימות נשלחה")
+      .setDescription("נשלחה אליך הודעה פרטית (DM) המכילה את שאלת האימות.")
       .setColor(0xffff00);
 
     const errorEmbed = new EmbedBuilder()
-      .setTitle("❌ שגיאה")
-      .setDescription("לא הצלחנו לשלוח לך הודעה פרטית. אנא ודא שההודעות הפרטיות שלך פתוחות.")
+      .setTitle("⚠️ שגיאה בשליחת הודעה")
+      .setDescription("לא הצלחנו לשלוח אליך הודעה פרטית.\nאנא ודא שההודעות הפרטיות (DMs) שלך פתוחות מחברי השרת ונסה שוב.")
       .setColor(0xffff00);
 
     try {
