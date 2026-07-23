@@ -141,8 +141,7 @@ client.once("ready", async () => {
       .setDescription("Set the automatic role for new members")
       .addRoleOption(option =>
         option.setName("role").setDescription("The role to assign").setRequired(true)
-      )
-      .setDefaultMemberPermissions(0);
+      );
 
     await rest.put(Routes.applicationGuildCommands(client.user.id, GUILD_ID), {
       body: [slashCommand.toJSON()],
@@ -230,6 +229,12 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     const role = interaction.options.getRole("role");
+    
+    if (interaction.guild.members.me.roles.highest.position <= role.position) {
+      await interaction.reply({ content: "שגיאה: התפקיד הזה גבוה או שווה לתפקיד של הבוט ברשימת התפקידים, ולכן הבוט לא יכול לחלק אותו.", flags: 64 });
+      return;
+    }
+
     autoRoleId = role.id;
     await interaction.reply({ content: `✅ התפקיד האוטומטי הוגדר בהצלחה ל- ${role.name}`, flags: 64 });
     return;
@@ -272,7 +277,7 @@ client.on("interactionCreate", async (interaction) => {
 
   if (interaction.isButton() && interaction.customId === "ticket_close") {
     if (!(await isStaffOrHigher(interaction.member))) {
-      await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
+      await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true << 0 });
       return;
     }
     const channel = interaction.channel;
