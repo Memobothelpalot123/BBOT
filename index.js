@@ -190,6 +190,22 @@ client.once("ready", async () => {
   try {
     const verifyChannel = await client.channels.fetch(VERIFY_CHANNEL_ID);
     if (verifyChannel && verifyChannel.type === ChannelType.GuildText) {
+      // Set channel permissions so users who already have both roles cannot see this channel
+      await verifyChannel.permissionOverwrites.set([
+        {
+          id: verifyChannel.guild.roles.everyone,
+          allow: [PermissionsBitField.Flags.ViewChannel],
+        },
+        {
+          id: VERIFY_ROLE_1,
+          deny: [PermissionsBitField.Flags.ViewChannel],
+        },
+        {
+          id: VERIFY_ROLE_2,
+          deny: [PermissionsBitField.Flags.ViewChannel],
+        },
+      ]).catch((err) => console.error("Failed to set channel overwrites:", err));
+
       const recent = await verifyChannel.messages.fetch({ limit: 50 });
       for (const msg of recent.values()) {
         if (msg.author.id === client.user.id) {
@@ -283,11 +299,9 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton() && interaction.customId === "start_verify") {
-    // Check if the member has any other roles besides @everyone
-    // member.roles.cache has at least @everyone (which equals guild.id)
     if (interaction.member.roles.cache.size > 1) {
       await interaction.reply({
-        content: "❌ אתה כבר מאומת או שיש לך תפקידים בשרת!",
+        content: "❌ אתה כבר מאומת!",
         ephemeral: true,
       });
       return;
