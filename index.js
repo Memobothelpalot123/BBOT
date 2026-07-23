@@ -28,6 +28,7 @@ import {
 const GUILD_ID = process.env.GUILD_ID;
 const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID;
 const PANEL_CHANNEL_ID = process.env.PANEL_CHANNEL_ID;
+const VERIFY_CHANNEL_ID = "1529877007217987795";
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 const STAFF_ROLE_ID = "1529565287584764117";
@@ -35,12 +36,14 @@ const HELP_RATE_LIMIT = 5;
 const HELP_WINDOW_MS = 60 * 60 * 1000;
 
 const helpUsage = new Map();
+const activeVerification = new Map();
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
   ],
 });
 
@@ -81,6 +84,23 @@ function buildPanel() {
   return {
     embeds: [embed],
     components: [new ActionRowBuilder().addComponents(menu)],
+  };
+}
+
+function buildVerifyPanel() {
+  const embed = new EmbedBuilder()
+    .setTitle("✅ מערכת אימות")
+    .setDescription("לחץ על הכפתור למטה כדי להתחיל את תהליך האימות בפרטי (DM).")
+    .setColor(0x00ff00);
+
+  const button = new ButtonBuilder()
+    .setCustomId("start_verify")
+    .setLabel("אימות")
+    .setStyle(ButtonStyle.Success);
+
+  return {
+    embeds: [embed],
+    components: [new ActionRowBuilder().addComponents(button)],
   };
 }
 
@@ -141,25 +161,55 @@ client.once("ready", async () => {
 
   try {
     const channel = await client.channels.fetch(PANEL_CHANNEL_ID);
-    if (!channel || channel.type !== ChannelType.GuildText) return;
+    if (channel && channel.type === ChannelType.GuildText) {
+      const recent = await channel.messages.fetch({ limit: 50 });
+      const existing = recent.find(
+        (msg) =>
+          msg.author.id === client.user.id &&
+          msg.embeds.some((e) => e.title === "🎫 מרכז פתיחת טיקטים")
+      );
+      if (existing) await existing.delete();
 
-    const recent = await channel.messages.fetch({ limit: 50 });
-    const existing = recent.find(
-      (msg) =>
-        msg.author.id === client.user.id &&
-        msg.embeds.some((e) => e.title === "🎫 מרכז פתיחת טיקטים")
-    );
-    if (existing) await existing.delete();
-
-    await channel.send(buildPanel());
-    console.log("✅ Ticket panel sent");
+      await channel.send(buildPanel());
+      console.log("✅ Ticket panel sent");
+    }
   } catch (err) {
     console.error("Failed to send panel:", err);
+  }
+
+  try {
+    const verifyChannel = await client.channels.fetch(VERIFY_CHANNEL_ID);
+    if (verifyChannel && verifyChannel.type === ChannelType.GuildText) {
+      const recent = await verifyChannel.messages.fetch({ limit: 50 });
+      const existing = recent.find(
+        (msg) =>
+          msg.author.id === client.user.id &&
+          msg.embeds.some((e) => e.title === "✅ מערכת אימות")
+      );
+      if (existing) await existing.delete();
+
+      await verifyChannel.send(buildVerifyPanel());
+      console.log("✅ Verify panel sent");
+    }
+  } catch (err) {
+    console.error("Failed to send verify panel:", err);
   }
 });
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  if (!message.guild && activeVerification.has(message.author.id)) {
+    const correctAnswer = activeVerification.get(message.author.id);
+    if (message.content.trim() === String(correctAnswer)) {
+      activeVerification.delete(message.author.id);
+      await message.reply("✅ אימות עבר בהצלחה! אתה יכול לסגור הודעה זו.");
+    } else {
+      await message.reply("❌ תשובה שגנסה. נסה שוב את התשובה לשאלה הקודמת:");
+    }
+    return;
+  }
+
   if (!message.content.startsWith("!h ") && message.content !== "!h") return;
 
   const reason = message.content.slice(3).trim();
@@ -202,6 +252,22 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  if (interaction.isButton() && interaction.customId === "start_verify") {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    const answer = num1 + num2;
+
+    activeVerification.set(interaction.user.id, answer);
+
+    try {
+      await interaction.user.send(`שלום! כדי להשלים את האימות, אנא ענה על שאלה פשוטה זו:\nכמה זה **${num1} + ${num2}**? כתוב כאן רק את המספר.`);
+      await interaction.reply({ content: "✅ נשלחה אליך הודעה פרטית (DM) עם שאלה לאימות!", ephemeral: true });
+    } catch (err) {
+      await interaction.reply({ content: "❌ לא הצלחנו לשלוח לך הודעה פרטית. אנא ודא שההודעות הפרטיות שלך פתוחות.", ephemeral: true });
+    }
+    return;
+  }
+
   if (interaction.isButton() && interaction.customId === "help_handle") {
     if (!(await isStaffOrHigher(interaction.member))) {
       await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
