@@ -1,11 +1,13 @@
-import http from 'http';
-
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain' });
-  res.end('Bot is running!');
-});
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`HTTP server is listening on port ${PORT}`);
-});
+{
+  "name": "discord-bot",
+  "version": "1.0.0",
+  "description": "Discord ticket and help bot",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.0"
+  }
+}
