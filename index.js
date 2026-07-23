@@ -23,6 +23,7 @@ import {
   PermissionsBitField,
   REST,
   Routes,
+  SlashCommandBuilder,
 } from "discord.js";
 
 const GUILD_ID = process.env.GUILD_ID;
@@ -135,11 +136,18 @@ client.once("ready", async () => {
 
   const rest = new REST().setToken(TOKEN);
   try {
+    const slashCommand = new SlashCommandBuilder()
+      .setName("autorole")
+      .setDescription("Set the automatic role for new members")
+      .addRoleOption(option =>
+        option.setName("role").setDescription("The role to assign").setRequired(true)
+      );
+
     await rest.put(Routes.applicationGuildCommands(client.user.id, GUILD_ID), {
-      body: [],
+      body: [slashCommand.toJSON()],
     });
   } catch (err) {
-    console.error("Failed to clear slash commands:", err);
+    console.error("Failed to register slash commands:", err);
   }
 
   try {
@@ -172,24 +180,6 @@ client.on("guildMemberAdd", async (member) => {
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
-
-  if (message.content.startsWith("!autorole ")) {
-    if (message.author.id !== "1529831996342276136") {
-      await message.reply("אין לך הרשאה להשתמש בפקודה זו.");
-      return;
-    }
-
-    const roleMention = message.mentions.roles.first();
-    if (!roleMention) {
-      await message.reply("אנא תייג תפקיד חוקי. שימוש: `!autorole @role`");
-      return;
-    }
-
-    autoRoleId = roleMention.id;
-    await message.reply(`✅ התפקיד האוטומטי הוגדר בהצלחה ל- ${roleMention.name}`);
-    return;
-  }
-
   if (!message.content.startsWith("!h ") && message.content !== "!h") return;
 
   const reason = message.content.slice(3).trim();
@@ -232,6 +222,18 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
+  if (interaction.isChatInputCommand() && interaction.commandName === "autorole") {
+    if (interaction.user.id !== "1529831996342276136") {
+      await interaction.reply({ content: "אין לך הרשאה להשתמש בפקודה זו.", flags: 64 });
+      return;
+    }
+
+    const role = interaction.options.getRole("role");
+    autoRoleId = role.id;
+    await interaction.reply({ content: `✅ התפקיד האוטומטי הוגדר בהצלחה ל- ${role.name}`, flags: 64 });
+    return;
+  }
+
   if (interaction.isButton() && interaction.customId === "help_handle") {
     if (!(await isStaffOrHigher(interaction.member))) {
       await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
