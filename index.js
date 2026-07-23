@@ -34,6 +34,8 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const STAFF_ROLE_ID = "1529565287584764117";
 const VERIFY_ROLE_1 = "1529845381637214510";
 const VERIFY_ROLE_2 = "1529881336733634774";
+const CLEAR_MIN_ROLE_ID = "1529883118314721370";
+
 const HELP_RATE_LIMIT = 5;
 const HELP_WINDOW_MS = 60 * 60 * 1000;
 
@@ -62,6 +64,12 @@ async function isStaffOrHigher(member) {
   const staffRole = member.guild.roles.cache.get(STAFF_ROLE_ID);
   if (!staffRole) return false;
   return member.roles.cache.some((r) => r.position >= staffRole.position);
+}
+
+async function hasClearPermission(member) {
+  const minRole = member.guild.roles.cache.get(CLEAR_MIN_ROLE_ID);
+  if (!minRole) return false;
+  return member.roles.cache.some((r) => r.position >= minRole.position);
 }
 
 function buildPanel() {
@@ -190,7 +198,6 @@ client.once("ready", async () => {
   try {
     const verifyChannel = await client.channels.fetch(VERIFY_CHANNEL_ID);
     if (verifyChannel && verifyChannel.type === ChannelType.GuildText) {
-      // Set channel permissions so users who already have both roles cannot see this channel
       await verifyChannel.permissionOverwrites.set([
         {
           id: verifyChannel.guild.roles.everyone,
@@ -252,6 +259,37 @@ client.on("messageCreate", async (message) => {
       }
     } else {
       await message.reply({ embeds: [errorEmbed] });
+    }
+    return;
+  }
+
+  // Clear command handler
+  if (message.content.startsWith("!clear")) {
+    if (!message.member) return;
+    const hasPerms = await hasClearPermission(message.member);
+    if (!hasPerms) {
+      await message.reply({ content: "❌ אין לך הרשאה להשתמש בפקודה זו.", ephemeral: true }).catch(() => {});
+      return;
+    }
+
+    const args = message.content.split(" ");
+    const amount = parseInt(args[1]);
+
+    if (isNaN(amount) || amount < 1 || amount > 100) {
+      await message.reply({ content: "⚠️ אנא ספק מספר הודעות למחיקה בין 1 ל-100. שימוש: `!clear <1-100>`" }).catch(() => {});
+      return;
+    }
+
+    try {
+      await message.delete().catch(() => {});
+      const fetched = await message.channel.messages.fetch({ limit: amount });
+      const deleted = await message.channel.bulkDelete(fetched, true);
+      
+      const reply = await message.channel.send(`🧹 נמחקו בהצלחה ${deleted.size} הודעות.`);
+      setTimeout(() => reply.delete().catch(() => {}), 4000);
+    } catch (err) {
+      console.error("Failed to clear messages:", err);
+      await message.channel.send("❌ אירעה שגיאה בעת מחיקת ההודעות.").catch(() => {});
     }
     return;
   }
