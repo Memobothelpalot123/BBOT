@@ -1,3 +1,17 @@
+const http = require('http');
+
+// Simple HTTP server to satisfy Render's port requirement
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Bot is running!');
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`HTTP server is listening on port ${PORT}`);
+});
+
+// Your existing Discord bot login code below...
 import {
   Client,
   GatewayIntentBits,
