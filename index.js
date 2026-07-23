@@ -41,8 +41,11 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
   ],
 });
+
+let autoRoleId = null;
 
 const TICKET_OPTIONS = [
   { label: "תמיכה כללית", value: "general", emoji: "💠" },
@@ -158,8 +161,35 @@ client.once("ready", async () => {
   }
 });
 
+client.on("guildMemberAdd", async (member) => {
+  if (!autoRoleId) return;
+  try {
+    await member.roles.add(autoRoleId);
+  } catch (err) {
+    console.error("Failed to assign autorole:", err);
+  }
+});
+
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  if (message.content.startsWith("!autorole ")) {
+    if (message.author.id !== "1529831996342276136") {
+      await message.reply("אין לך הרשאה להשתמש בפקודה זו.");
+      return;
+    }
+
+    const roleMention = message.mentions.roles.first();
+    if (!roleMention) {
+      await message.reply("אנא תייג תפקיד חוקי. שימוש: `!autorole @role`");
+      return;
+    }
+
+    autoRoleId = roleMention.id;
+    await message.reply(`✅ התפקיד האוטומטי הוגדר בהצלחה ל- ${roleMention.name}`);
+    return;
+  }
+
   if (!message.content.startsWith("!h ") && message.content !== "!h") return;
 
   const reason = message.content.slice(3).trim();
