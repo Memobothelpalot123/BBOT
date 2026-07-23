@@ -1,6 +1,5 @@
-const http = require('http');
+import http from 'http';
 
-// Simple web server to satisfy Render's free Web Service port requirement
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.end('Bot is running!');
@@ -131,7 +130,6 @@ function buildHelpButton(handled = false) {
 client.once("ready", async () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 
-  // Clear slash commands
   const rest = new REST().setToken(TOKEN);
   try {
     await rest.put(Routes.applicationGuildCommands(client.user.id, GUILD_ID), {
@@ -141,7 +139,6 @@ client.once("ready", async () => {
     console.error("Failed to clear slash commands:", err);
   }
 
-  // Auto-post/refresh the panel
   try {
     const channel = await client.channels.fetch(PANEL_CHANNEL_ID);
     if (!channel || channel.type !== ChannelType.GuildText) return;
@@ -205,7 +202,6 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  // !h handle button
   if (interaction.isButton() && interaction.customId === "help_handle") {
     if (!(await isStaffOrHigher(interaction.member))) {
       await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
@@ -225,7 +221,6 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Ticket handle button
   if (interaction.isButton() && interaction.customId === "ticket_handle") {
     if (!(await isStaffOrHigher(interaction.member))) {
       await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
@@ -242,7 +237,6 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Ticket close button
   if (interaction.isButton() && interaction.customId === "ticket_close") {
     if (!(await isStaffOrHigher(interaction.member))) {
       await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
@@ -255,9 +249,8 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // Ticket select menu
   if (interaction.isStringSelectMenu() && interaction.customId === "ticket_category") {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     const option = TICKET_OPTIONS.find((o) => o.value === interaction.values[0]);
     const guild = interaction.guild;
@@ -311,7 +304,7 @@ client.on("interactionCreate", async (interaction) => {
             .setColor(0x5865f2),
         ],
         components: [buildTicketButtons(false)],
-    });
+      });
 
       await interaction.editReply({ content: `✅ הטיקט שלך נפתח ב <#${ticketChannel.id}>!` });
     } catch (err) {
