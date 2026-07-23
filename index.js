@@ -90,7 +90,7 @@ function buildPanel() {
 function buildVerifyPanel() {
   const embed = new EmbedBuilder()
     .setTitle("🛡️ מערכת אימות רשמית")
-    .setDescription("ברוכים הבאים לשרת שלנו!\nכדי לקבל גישה מלאה לכל חלקי השרת, יש לעבור תהליך אימות קצר.\n\nאנא לחצו על הכפתור המאומת למטה כדי להתחיל.")
+    .setDescription("ברוכים הבאים לשרת DoubleIL!\nכדי לקבל גישה מלאה לכל חלקי השרת, יש לעבור תהליך אימות קצר.\n\nאנא לחצו על הכפתור המאומת למטה כדי להתחיל.")
     .setColor(0xffff00)
     .setFooter({ text: "מערכת אבטחה מתקדמת" });
 
@@ -188,7 +188,6 @@ client.once("ready", async () => {
     const verifyChannel = await client.channels.fetch(VERIFY_CHANNEL_ID);
     if (verifyChannel && verifyChannel.type === ChannelType.GuildText) {
       const recent = await verifyChannel.messages.fetch({ limit: 50 });
-      // Clear out all old bot messages in the verification channel to ensure a fresh, clean panel
       for (const msg of recent.values()) {
         if (msg.author.id === client.user.id) {
           await msg.delete().catch(() => {});
@@ -210,7 +209,7 @@ client.on("messageCreate", async (message) => {
     const correctAnswer = activeVerification.get(message.author.id);
     const successEmbed = new EmbedBuilder()
       .setTitle("✅ אימות הושלם בהצלחה")
-      .setDescription("תשובתך נמצאה נכונה. כעת יש לך גישה מלאה לשרת. תוכל לסגור הודעה פרטית זו.")
+      .setDescription("תשובתך נמצאה נכונה. כעת יש לך גישה מלאה לשרת DoubleIL. תוכל לסגור הודעה פרטית זו.")
       .setColor(0xffff00)
       .setTimestamp();
 
@@ -280,7 +279,7 @@ client.on("interactionCreate", async (interaction) => {
 
     const dmEmbed = new EmbedBuilder()
       .setTitle("🔐 תהליך אימות אבטחה")
-      .setDescription(`כדי לאשר שאינך בוט, אנא השב על התרגיל הבא:\n\n**כמה זה ${num1} + ${num2}?**\n\n*(שלח הודעה פרטית זו עם המספר בלבד)*`)
+      .setDescription(`כדי לאשר שאינך בוט בשרת DoubleIL, אנא השב על התרגיל הבא:\n\n**כמה זה ${num1} + ${num2}?**\n\n*(שלח הודעה פרטית זו עם המספר בלבד)*`)
       .setColor(0xffff00)
       .setFooter({ text: "הודעה זו מיועדת עבורך בלבד" });
 
