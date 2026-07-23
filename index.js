@@ -23,7 +23,6 @@ import {
   PermissionsBitField,
   REST,
   Routes,
-  SlashCommandBuilder,
 } from "discord.js";
 
 const GUILD_ID = process.env.GUILD_ID;
@@ -42,11 +41,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
   ],
 });
-
-let autoRoleId = null;
 
 const TICKET_OPTIONS = [
   { label: "תמיכה כללית", value: "general", emoji: "💠" },
@@ -136,18 +132,11 @@ client.once("ready", async () => {
 
   const rest = new REST().setToken(TOKEN);
   try {
-    const slashCommand = new SlashCommandBuilder()
-      .setName("autorole")
-      .setDescription("Set the automatic role for new members")
-      .addRoleOption(option =>
-        option.setName("role").setDescription("The role to assign").setRequired(true)
-      );
-
     await rest.put(Routes.applicationGuildCommands(client.user.id, GUILD_ID), {
-      body: [slashCommand.toJSON()],
+      body: [],
     });
   } catch (err) {
-    console.error("Failed to register slash commands:", err);
+    console.error("Failed to clear slash commands:", err);
   }
 
   try {
@@ -166,15 +155,6 @@ client.once("ready", async () => {
     console.log("✅ Ticket panel sent");
   } catch (err) {
     console.error("Failed to send panel:", err);
-  }
-});
-
-client.on("guildMemberAdd", async (member) => {
-  if (!autoRoleId) return;
-  try {
-    await member.roles.add(autoRoleId);
-  } catch (err) {
-    console.error("Failed to assign autorole:", err);
   }
 });
 
@@ -222,24 +202,6 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  if (interaction.isChatInputCommand() && interaction.commandName === "autorole") {
-    if (interaction.user.id !== "1529831996342276136") {
-      await interaction.reply({ content: "אין לך הרשאה להשתמש בפקודה זו.", flags: 64 });
-      return;
-    }
-
-    const role = interaction.options.getRole("role");
-    
-    if (interaction.guild.members.me.roles.highest.position <= role.position) {
-      await interaction.reply({ content: "שגיאה: התפקיד הזה גבוה או שווה לתפקיד של הבוט ברשימת התפקידים, ולכן הבוט לא יכול לחלק אותו.", flags: 64 });
-      return;
-    }
-
-    autoRoleId = role.id;
-    await interaction.reply({ content: `✅ התפקיד האוטומטי הוגדר בהצלחה ל- ${role.name}`, flags: 64 });
-    return;
-  }
-
   if (interaction.isButton() && interaction.customId === "help_handle") {
     if (!(await isStaffOrHigher(interaction.member))) {
       await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
@@ -277,7 +239,7 @@ client.on("interactionCreate", async (interaction) => {
 
   if (interaction.isButton() && interaction.customId === "ticket_close") {
     if (!(await isStaffOrHigher(interaction.member))) {
-      await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true << 0 });
+      await interaction.reply({ content: "אין לך הרשאה להשתמש בכפתור זה.", ephemeral: true });
       return;
     }
     const channel = interaction.channel;
