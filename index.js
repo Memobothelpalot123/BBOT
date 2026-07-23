@@ -186,7 +186,7 @@ client.once("ready", async () => {
           msg.author.id === client.user.id &&
           msg.embeds.some((e) => e.title === "🎫 מרכז פתיחת טיקטים")
       );
-      if (existing) await existing.delete();
+      if (existing) await existing.delete().catch(() => {});
 
       await channel.send(buildPanel());
       console.log("✅ Ticket panel sent");
@@ -289,7 +289,7 @@ client.on("messageCreate", async (message) => {
       setTimeout(() => reply.delete().catch(() => {}), 4000);
     } catch (err) {
       console.error("Failed to clear messages:", err);
-      await message.channel.send("❌ אירעה שגיאה בעת מחיקת ההודעות.").catch(() => {});
+      // Removed message.channel.send on bulkDelete error to completely prevent unhandled rejection/crashing when messages are older than 14 days
     }
     return;
   }
