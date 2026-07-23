@@ -91,7 +91,7 @@ function buildVerifyPanel() {
   const embed = new EmbedBuilder()
     .setTitle("✅ מערכת אימות")
     .setDescription("לחץ על הכפתור למטה כדי להתחיל את תהליך האימות בפרטי (DM).")
-    .setColor(0x00ff00);
+    .setColor(0xffff00);
 
   const button = new ButtonBuilder()
     .setCustomId("start_verify")
@@ -201,11 +201,21 @@ client.on("messageCreate", async (message) => {
 
   if (!message.guild && activeVerification.has(message.author.id)) {
     const correctAnswer = activeVerification.get(message.author.id);
+    const successEmbed = new EmbedBuilder()
+      .setTitle("✅ אימות הצליח")
+      .setDescription("התשובה נכונה. תהליך האימות הושלם בהצלחה.")
+      .setColor(0xffff00);
+
+    const errorEmbed = new EmbedBuilder()
+      .setTitle("❌ שגיאה באימות")
+      .setDescription("התשובה שגוי. אנא נسه שוב וענה על התרגיל הבא:")
+      .setColor(0xffff00);
+
     if (message.content.trim() === String(correctAnswer)) {
       activeVerification.delete(message.author.id);
-      await message.reply("✅ אימות עבר בהצלחה! אתה יכול לסגור הודעה זו.");
+      await message.reply({ embeds: [successEmbed] });
     } else {
-      await message.reply("❌ תשובה שגנסה. נסה שוב את התשובה לשאלה הקודמת:");
+      await message.reply({ embeds: [errorEmbed] });
     }
     return;
   }
@@ -259,11 +269,26 @@ client.on("interactionCreate", async (interaction) => {
 
     activeVerification.set(interaction.user.id, answer);
 
+    const dmEmbed = new EmbedBuilder()
+      .setTitle("🔐 אימות אבטחה")
+      .setDescription(`כדי להשלים את תהליך האימות, אנא ענה על השאלה הבאה:\n\n**כמה זה ${num1} + ${num2}?**\n\n*(השב בהודעה פרטית זו עם המספר בלבד)*`)
+      .setColor(0xffff00);
+
+    const replyEmbed = new EmbedBuilder()
+      .setTitle("📩 הודעה נשלחה")
+      .setDescription("נשלחה אליך הודעה פרטית (DM) עם שאלת האימות.")
+      .setColor(0xffff00);
+
+    const errorEmbed = new EmbedBuilder()
+      .setTitle("❌ שגיאה")
+      .setDescription("לא הצלחנו לשלוח לך הודעה פרטית. אנא ודא שההודעות הפרטיות שלך פתוחות.")
+      .setColor(0xffff00);
+
     try {
-      await interaction.user.send(`שלום! כדי להשלים את האימות, אנא ענה על שאלה פשוטה זו:\nכמה זה **${num1} + ${num2}**? כתוב כאן רק את המספר.`);
-      await interaction.reply({ content: "✅ נשלחה אליך הודעה פרטית (DM) עם שאלה לאימות!", ephemeral: true });
+      await interaction.user.send({ embeds: [dmEmbed] });
+      await interaction.reply({ embeds: [replyEmbed], ephemeral: true });
     } catch (err) {
-      await interaction.reply({ content: "❌ לא הצלחנו לשלוח לך הודעה פרטית. אנא ודא שההודעות הפרטיות שלך פתוחות.", ephemeral: true });
+      await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
     }
     return;
   }
